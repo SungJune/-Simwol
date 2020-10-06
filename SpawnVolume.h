@@ -7,7 +7,7 @@
 #include "SpawnVolume.generated.h"
 
 UCLASS()
-class FIRSTGAMES_API ASpawnVolume : public AActor
+class OPENRPG_API ASpawnVolume : public AActor
 {
 	GENERATED_BODY()
 	
@@ -15,24 +15,15 @@ public:
 	// Sets default values for this actor's properties
 	ASpawnVolume();
 
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Spawning")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Spawning")
 	class UBoxComponent* SpawningBox;
 
-	// 블루프린트 이용 
-	// 선택된 동물 종류 등을 나타냄( 몬스터 등 )
 	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category ="Spawning")
-	TSubclassOf<AActor> Actor_1;
+	TSubclassOf<class AEnemy> PawnToSpawn;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
-	TSubclassOf<AActor> Actor_2;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
-	TSubclassOf<AActor> Actor_3;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning")
-	TSubclassOf<AActor> Actor_4;
-
-	TArray<TSubclassOf<AActor>> SpawnArray;
+	UPROPERTY(VIsibleAnywhere, BlueprintReadOnly, Category = "AI")
+	class AAIController* SpawnAIController;
 
 protected:
 	// Called when the game starts or when spawned
@@ -42,15 +33,13 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintPure,Category="Spawning")
-	FVector GetSpawningPoint();
-
 	UFUNCTION(BlueprintPure, Category = "Spawning")
-	TSubclassOf<AActor> GetSpawnActor();
+	FVector GetSpawnPoint();
 
-	// ----- 하드 코딩 Spawn-----
+	UFUNCTION(BlueprintCallable)
+	void SpawnMoveToTarget(class AMainCharacter* Target);
 
-	UFUNCTION(BlueprintNativeEvent,BlueprintCallable,Category = "Spawning")
-	void SpawnOurActor(UClass* ToSpawn, const FVector& Location);
-	
+	UFUNCTION(BlueprintNativeEvent , BlueprintCallable, Category = "Spawnning")
+	void SpawnOurPawn(UClass* ToSpawn, const FVector& Location);
+
 };

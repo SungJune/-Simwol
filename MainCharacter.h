@@ -9,27 +9,12 @@
 UENUM(BlueprintType)
 enum class EMovementStatus : uint8
 {
-		EMS_Normal UMETA(DisplayName = "Normal"),
-		EMS_Sprinting UMETA(DisplayName = "Sprinting"),
-		EMS_Dead UMETA(DisplayName = "Dead"),
-
-		EMS_MAX UMETA(DisplayName = "DefaultMAX")
-};
-
-UENUM(BlueprintType)
-enum class EStaminaStatus : uint8
-{
-	ESS_Normal UMETA(DisplayName = "Normal"),
-	ESS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
-	ESS_Exhausted UMETA(DisplayName = "Exhausted"), //ESS_Exhausted 스테미나의 최소값 
-	ESS_ExhaustedRecovering UMETA(DisplayName = "ExhaustedRecovering"), //ESS_ExhaustedRecovering 스테미나 회복
-
-	ESS_MAX UMETA(DisplayName = "DefaultMAX")
-
+	EMS_Idle UMETA(DisplayName = "Idle"),
+	EMS_Dead UMETA(DisplayName ="Dead")
 };
 
 UCLASS()
-class FIRSTGAMES_API AMainCharacter : public ACharacter
+class OPENRPG_API AMainCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -37,130 +22,78 @@ public:
 	// Sets default values for this character's properties
 	AMainCharacter();
 
-	UPROPERTY(EditDefaultsOnly, Category = "SaveData")
-	TSubclassOf<class AItemStorage> WeaponStorage;
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
-	bool bHasCombatTarget;
-
-	FORCEINLINE void SetHasCombatTarget(bool HasTarget) { bHasCombatTarget = HasTarget; }
-
-	UPROPERTY(BlueprintReadWrite,VisibleAnywhere,Category = "Combat")
-	FVector CombatTargetLocation;
-
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Controller")
 	class AMainPlayerController* MainPlayerController;
 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
-	class UParticleSystem* HitParticles;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
-	class USoundCue* HitSound;
-
-	//TArray<FVector> PickupLocations;
-
-
-	//UFUNCTION(BlueprintCallable)
-	//void ShowPickupLocation();
-
-	//  열겨형을 가진 함수 
-	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "Enums")
-	EMovementStatus MovementStatus;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Enums")
-	EStaminaStatus StaminaStatus;
-
-	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Movement")
-	float StaminaDrainRate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Movement")
-	float MinSprintStamina;
-
-	float InterpSpeed;
-
-	bool bInterpToEnemy;
-
-	void SetInterpToEnemy(bool Interp);
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = "Combat")
-	class AEnemy* CombatTarget;
-
-	FORCEINLINE void SetCombatTarget(AEnemy* Target) { CombatTarget = Target; }
-
-	FRotator GetLookAtRotationYaw(FVector Target);
-
-	// 안움직이는 상태일때
-	//Set Movement Status and running speed
-	void SetMovementStatus(EMovementStatus Status);
-
-	UPROPERTY(EditAnywhere,BlueprintReadOnly,Category ="Running")
-	float RunningSpeed;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Running")
-	float SprintingSpeed;
-
-	bool bShiftKeyDown;
-
-	// Pressed down to enable sprinting
-	void ShiftKeyDown();
-
-	//Released to stop sprinting
-	void ShiftKeyUp();
-
-	//어디서든 볼수있게 Camera 설정 
-	// 블루프린트에서 이를 설정하여 블루프린트 읽기 전용및 카테고리로 설정하지않음
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess="true"))
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
 
-	// 따라오는 카메라
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-	// 선회율
-	// 카메라의 회전 기능을 확장하기위한 기본 회전 속도
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category=Camera)
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* LeftHandCombatCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* RightHandCombatCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* LeftTobaseCombatCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* RightTobaseCombatCollision;
+
+	// 플레이어가 피격을 당했을때 나온는 이펙트 
+	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Combat")
+	class UParticleSystem* PlayerHitParticles;
+
+	// 몬스터가 플레이어 떄릴때 사운드 
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	class USoundCue* EnemyHitSound;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Category ="Combat")
+	class AEnemy* CombatTarget;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseTurnRate;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookupRate;
 
-	/**
-	/*
-	/* Player Stats
-	/*
-	*/
-	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category ="Player Stats")
+	// PlayerStat
+	
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly, Category = "Player Stat")
 	float MaxHealth;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Player Stats")
+	
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Player Stat")
 	float Health;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats")
-	float MaxStamina;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Player Stats")
-	float Stamina;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadwrite, Category = "Player Stats")
-	int32 coins;
-
-	// 피해를 입었을때 감소되는 체력 
-	void DecrementHealth(float Amount);
+	//UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Player Stat")
+	//float Exp;
 	
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent,
-								class AController * EventInstigator,AActor * DamageCauser) override;
+	//UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Player Stat")
+	//float MaxExp;
 
-	UFUNCTION(BlueprintCallable)
-	void IncrementCoins(int32 Amount);
+	int ComboAttack_num;
 
-	UFUNCTION(BlueprintCallable)
-	void IncrementHealth(float Amount);
+	UPROPERTY(EditDefaultsOnly,Category = Attack)
+	UAnimMontage* AttackMeleeAnim;
 
-	void Die();
+	UPROPERTY(EditDefaultsOnly, Category = Attack)
+	UAnimMontage* AttackMeleeAnimCombo;
 
-	//virtual void Jump() override;
+	UPROPERTY(EditDefaultsOnly, Category = Attack)
+	UAnimMontage* AttackMeleeAnimCombo2;
+
+	UPROPERTY(EditDefaultsOnly, Category = Attack)
+	UAnimMontage* AttackCombo;
+	
+	UPROPERTY(EditDefaultsOnly, Category = Attack)
+	UAnimMontage* LastAttackCombo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
+	float Damage;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -172,88 +105,125 @@ public:
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
-	// 위 아래 움직임
+
 	void MoveForward(float Value);
 
-	// 왼쪽 오른쪽 움직임
 	void MoveRight(float Value);
 
-	// 회전
-	void Turn(float Value);
-
-	// 방향
-	void LookUp(float Value);
-
-
-	bool bMovingForward;
-	bool bMovingRight;
-
-	bool CanMove(float Value);
-
-	// 주어진 속도로 회전하기 위해 입력을 통해 호출
-	// @param Rate This is a  normalized rate, i.e ,1.0 means 100% of desired turn rate
 	void TurnAtRate(float Rate);
-
-	// 주어진 속도에서 위 아래 방향키를 찾음(?)
-	// Called via input to look up/down at a given rate
-	// @param Rate This is a  normalized rate, i.e ,1.0 means 100% of desired look up/down rate
+	
 	void LookUpAtRate(float Rate);
 
-	bool bLMBDown;
-	void LMBDown();
-	void LMBUp();
+	void AttackMelee();
 
-	bool bESCDown;
-	void ESCDown();
-	void ESCUp();
+	void DecrementHealth(float Amount);
 
+	void Die();
 
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
 
+	virtual float TakeDamage(float DamageAmount,struct FDamageEvent const & DamageEvent,class AController * EventInstigator,AActor * DamageCauser) override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items)
-	class AWeapon* EquippedWeapon;
+	//virtual void Jump() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items)
-	class AItem* ActiveOverlappingItem;
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Enums")
+	EMovementStatus MovementStatus;
 
-	void SetEquippedWeapon(AWeapon* WeaponToSet);
-	FORCEINLINE AWeapon* GetEquippedWeapon(){ return EquippedWeapon; }
-	FORCEINLINE void SetActiveOverlappingItem(AItem* Item) { ActiveOverlappingItem = Item; }
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Anims")
-	bool bAttacking;
-
-	void Attack();
+	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "Combat")
+	FVector CombatTargetLocation;
 
 	UFUNCTION(BlueprintCallable)
-	void AttackEnd();
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-	class UAnimMontage* CombatMontage;
+	void ActivateCollision();
 
 	UFUNCTION(BlueprintCallable)
-	void PlaySwingSound();
+	void DeactivateCollision();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollisiontwo();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollisiontwo();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollisionthree();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollisionthree();
+
+	UFUNCTION(BlueprintCallable)
+	void LastActivateCollision();
+
+	UFUNCTION(BlueprintCallable)
+	void LastDeactivateCollision();
 
 	UFUNCTION(BlueprintCallable)
 	void DeathEnd();
 
-	void UpdateCombatTarget();
-
-	UPROPERTY(EditAnywhere,BlueprintReadwrite , Category = "Combat")
-	TSubclassOf<AEnemy> EnemyFilter;
-
-	//화면 전환 (레벨전환)
-	void SwitchLevel(FName LevelName);
-
 	UFUNCTION(BlueprintCallable)
-	void SaveGame();
-	 
-	UFUNCTION(BlueprintCallable)
-	void LoadGame(bool SetPosition);
+	void AttackMeleeEnd();
 
-	void LoadGameNoSwitch();
+	void LMBDown();
+	void LMBup() { bLMBDown = false; }
+	bool bLMBDown;
+
+	// 공격 멈춤 스위치 
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Anims")
+	bool isDuringAttack;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
+	bool bHasCombatTarget;
+
+	// 무기 생성 true/false
+	bool CanSetWeapon();
+
+	// 적에게 보간 (공격할때 적의 방향을 봄) 
+	float InterpSpeed;
+
+	bool bInterpToEnemy;
+
+	void SetInterpToEnemy(bool Interp);
+
+	FRotator GetLookAtRotaionYaw(FVector Target);
+
+	//void SetWeapon(class AWeaponKatana* NewWeapon);
+
+	//무기 생성(?)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = items)
+	class AWeaponKatana* Equippedweapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = items)
+	class Aitem* ActiveOverlappingItem;
+
+	//장착할 무기 설정
+	void SetEquippedWeapon(AWeaponKatana* WeaponToSet);
+	FORCEINLINE AWeaponKatana* GetEquippedWeapon() { return Equippedweapon; }
+
+	//무기 교체 설정
+	FORCEINLINE void SetActiveOverlapping(Aitem* item) { ActiveOverlappingItem = item; }
+
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera ; }
+
+	// 적 에게 보간 
+	FORCEINLINE void SetCombatTarget(AEnemy* Target) { CombatTarget = Target; }
+
+	UFUNCTION()
+	virtual void PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+	UFUNCTION()
+	virtual void PlayerCombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
+	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Combat")
+	TSubclassOf<UDamageType> DamageTypeClass;
+
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
+	AController* PauchInstigator;
+
+	FORCEINLINE void SetInstigator(AController* Inst) { PauchInstigator = Inst; }
+
+	FORCEINLINE void SetHasCombatTarget(bool HasTarget) { bHasCombatTarget = HasTarget; }
+	
+	
+
+
 };
