@@ -37,36 +37,36 @@ AMainCharacter::AMainCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// øﬁº’
+	// ÏôºÏÜê
 	LeftHandCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftHandCombatCollision"));
 	LeftHandCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("LeftHandSocket"));
 
-	// ø¿∏•º’
+	// Ïò§Î•∏ÏÜê
 	RightHandCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("RightHandCombatCollision"));
 	RightHandCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("RightHandSocket"));
 
-	//øﬁπﬂ
+	//ÏôºÎ∞ú
 	LeftTobaseCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftTobaseCombatCollision"));
 	LeftTobaseCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("LeftToeBaseSocket"));
 
-	//ø¿∏•πﬂ
+	//Ïò§Î•∏Î∞ú
 	RightTobaseCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("RightTobaseCombatCollision"));
 	RightTobaseCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("RightToeBaseSocket"));
 
-	// »∏¿¸º”µµ 
+	// ÌöåÏ†ÑÏÜçÎèÑ 
 	BaseTurnRate = 65.f;
 	BaseLookupRate = 65.f;
 
-	// »∏¿¸Ω√ø° »∏¿¸¿ª «œ¡ˆ∏¯«œµµ∑œ∏∑¿Ω (ƒ´∏ﬁ∂Û ø°∏∏ «ÿ¥Á) 
+	// ÌöåÏ†ÑÏãúÏóê ÌöåÏ†ÑÏùÑ ÌïòÏßÄÎ™ªÌïòÎèÑÎ°ùÎßâÏùå (Ïπ¥Î©îÎùº ÏóêÎßå Ìï¥Îãπ) 
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 
-	// ƒ≥∏Ø≈Õ øÚ¡˜¿” ¿‘∑¬ 
-	GetCharacterMovement()->bOrientRotationToMovement = true; // ƒ≥∏Ø≈Õ∞° ¿‘∑¬πﬁ¥¬ πÊ«‚¿∏∑Œ øÚ¡˜¿”
+	// Ï∫êÎ¶≠ÌÑ∞ ÏõÄÏßÅÏûÑ ÏûÖÎ†• 
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Ï∫êÎ¶≠ÌÑ∞Í∞Ä ÏûÖÎ†•Î∞õÎäî Î∞©Ìñ•ÏúºÎ°ú ÏõÄÏßÅÏûÑ
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f);
 	
-	// ¡°«¡ 
+	// Ï†êÌîÑ 
 	GetCharacterMovement()->JumpZVelocity = 150.f;
 	GetCharacterMovement()->AirControl = 0.2;
 
@@ -76,16 +76,29 @@ AMainCharacter::AMainCharacter()
 	bInterpToEnemy = false;	
 	bHasCombatTarget = false;
 
+	bShiftKeyDown = false;
+
 	MaxHealth = 300.f;
 	Health = 65.f;
-	//Exp = 0.f;
-	//MaxExp = 100.f;
+
+	MaxStamina = 300.f;
+	Stamina = 100.f;
+
+	PlayerExp = 0.f;
+	PlayerMaxExp = 60.f;
 
 	MovementStatus = EMovementStatus::EMS_Idle;
 
+	StaminaStatus = EStaminaStatus::ESS_Normal;
+
 	Damage = 20.f;
 
+	PlayerLevel = 1;
+
 	ComboAttack_num = 0;
+
+	StaminaDrainRate = 25.f;
+	MinSprintStamina = 50.f;
 }
 
 // Called when the game starts or when spawned
@@ -133,6 +146,100 @@ void AMainCharacter::BeginPlay()
 void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	float DeltaStamina = StaminaDrainRate * DeltaTime;
+
+	switch (StaminaStatus)
+	{
+	case EStaminaStatus::ESS_Normal:
+		if (bShiftKeyDown)
+		{
+			if (Stamina - DeltaStamina <= MinSprintStamina)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
+				Stamina -= DeltaStamina;
+			}
+			else
+			{
+				Stamina -= DeltaStamina;
+			}
+			SetMovementStatus(EMovementStatus::EMS_Sprinting);
+		}
+		else
+		{
+			if (Stamina + DeltaStamina >= MaxStamina)
+			{
+				Stamina = MaxStamina;
+			}
+			else
+			{
+				Stamina += DeltaStamina;
+			}
+			SetStaminaStatus(EStaminaStatus::ESS_Normal);
+		}
+		break;
+
+	case EStaminaStatus::ESS_BelowMinimum:
+		if (bShiftKeyDown)
+		{
+			if (Stamina - DeltaStamina <= 0.f)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_Exhausted);
+				Stamina = 0;
+				SetMovementStatus(EMovementStatus::EMS_Normal);
+			}
+			else
+			{
+				Stamina -= DeltaStamina;
+				SetMovementStatus(EMovementStatus::EMS_Sprinting);
+			}
+		}
+		else
+		{
+			if (Stamina + DeltaStamina >= MinSprintStamina)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_Normal);
+				Stamina += DeltaStamina;
+			}
+			else
+			{
+				Stamina += DeltaStamina;
+			}
+			SetMovementStatus(EMovementStatus::EMS_Normal);
+		}
+		break;
+
+	case EStaminaStatus ::ESS_Exhausted:
+		if (bShiftKeyDown)
+		{
+			Stamina = 0.f;
+		}
+		else
+		{
+			SetStaminaStatus(EStaminaStatus::ESS_ExhaustedRecovering);
+			Stamina += DeltaStamina;
+		}
+		SetMovementStatus(EMovementStatus::EMS_Normal);
+		break;
+
+	case EStaminaStatus::ESS_ExhaustedRecovering:
+		if (Stamina + DeltaStamina >= MinSprintStamina)
+		{
+			SetStaminaStatus(EStaminaStatus::ESS_Normal);
+			Stamina += DeltaStamina;
+		}
+		else
+		{
+			Stamina += DeltaStamina;
+		}
+		SetMovementStatus(EMovementStatus::EMS_Normal);
+		break;
+
+	default:
+		;
+
+	}
+
 
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
@@ -182,7 +289,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMainCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpAtRate);
 
-	// π´±‚ ±≥√º πˆ∆∞ 
+	// Î¨¥Í∏∞ ÍµêÏ≤¥ Î≤ÑÌäº 
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMainCharacter::LMBDown);
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMainCharacter::LMBup);
 
@@ -231,7 +338,7 @@ void AMainCharacter::LMBDown()
 
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
-	// π´±‚ ±≥√º 
+	// Î¨¥Í∏∞ ÍµêÏ≤¥ 
 	if (ActiveOverlappingItem)
 	{
 		AWeaponKatana* katana = Cast<AWeaponKatana>(ActiveOverlappingItem);
@@ -246,7 +353,7 @@ void AMainCharacter::LMBDown()
 		AttackMelee();
 	}
 }
-// ªı∑ŒøÓ π´±‚ ¿Â¬¯Ω√ ∆ƒ±´ 
+// ÏÉàÎ°úÏö¥ Î¨¥Í∏∞ Ïû•Ï∞©Ïãú ÌååÍ¥¥ 
 void AMainCharacter::SetEquippedWeapon(AWeaponKatana* WeaponToSet)
 {
 	if (Equippedweapon)
@@ -371,13 +478,30 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 			{
 				UGameplayStatics::ApplyDamage(Enemy, Damage, PauchInstigator,this, DamageTypeClass);
 			}
+			
 		}
 	}
 }
 
 void AMainCharacter::PlayerCombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	
+	if (OtherActor)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 
+		if (Enemy)
+		{
+			// ÌîåÎ†àÏù¥Ïñ¥ Í≤ΩÌóòÏπò ÌöçÎìù
+			if (Enemy->Health == 0)
+			{
+				PlayerExp += Enemy->Exp;
+			}
+		}
+		PlayerExpBar();
+	}
+	//PlayerExpBar();
+	
 }
 
 void AMainCharacter::Die()
@@ -495,19 +619,21 @@ float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const &
 	return DamageAmount;
 }
 
-
-
-
-/*
-// ªÛ¿⁄ø°º≠ ≥™ø¬π´±‚ ¿Â¬¯ 
-void AMainCharacter::SetWeapon(class AWeaponKatana* NewWeapon)
+void AMainCharacter::PlayerExpBar()
 {
-	FName WeaponSocket(TEXT("RightHandSocket"));
-	if (nullptr != NewWeapon)
+	if (PlayerExp >= PlayerMaxExp)
 	{
-		NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponSocket);
-		NewWeapon->SetOwner(this);
-		Equippedweapon = NewWeapon;
+		PlayerMaxExp -= PlayerExp;
 	}
 }
-*/
+void AMainCharacter::PlayerLevelText(int32 Level)
+{
+	if (PlayerExp >= PlayerMaxExp)
+	{
+		PlayerLevel += Level;
+	}
+}
+	
+
+	
+	
