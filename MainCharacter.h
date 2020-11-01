@@ -9,8 +9,21 @@
 UENUM(BlueprintType)
 enum class EMovementStatus : uint8
 {
+	EMS_Normal UMETA(DisplayName = "Normal"),
 	EMS_Idle UMETA(DisplayName = "Idle"),
+	EMS_Sprinting UMETA(DisplayName = "Sprinting"),
 	EMS_Dead UMETA(DisplayName ="Dead")
+};
+
+UENUM(BlueprintType)
+enum class EStaminaStatus : uint8
+{
+	ESS_Normal UMETA(DisplayName = "Normal"),
+	ESS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
+	ESS_Exhausted UMETA(DisplayName = "Exhausted"),
+	ESS_ExhaustedRecovering	UMETA(DisplayName = "ExhaustedRecovering"),
+
+	ESS_MAX	UMETA(DisplayName = "DefaultMax"),
 };
 
 UCLASS()
@@ -43,11 +56,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
 	class UBoxComponent* RightTobaseCombatCollision;
 
-	// ÇÃ·¹ÀÌ¾î°¡ ÇÇ°İÀ» ´çÇßÀ»¶§ ³ª¿Â´Â ÀÌÆåÆ® 
+	// í”Œë ˆì´ì–´ê°€ í”¼ê²©ì„ ë‹¹í–ˆì„ë•Œ ë‚˜ì˜¨ëŠ” ì´í™íŠ¸ 
 	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Combat")
 	class UParticleSystem* PlayerHitParticles;
 
-	// ¸ó½ºÅÍ°¡ ÇÃ·¹ÀÌ¾î ‹š¸±¶§ »ç¿îµå 
+	// ëª¬ìŠ¤í„°ê°€ í”Œë ˆì´ì–´ ë–„ë¦´ë•Œ ì‚¬ìš´ë“œ 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	class USoundCue* EnemyHitSound;
 
@@ -68,11 +81,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Player Stat")
 	float Health;
 
-	//UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Player Stat")
-	//float Exp;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stat")
+	float MaxStamina;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Player Stat")
+	float Stamina;
+
+	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Player Stat")
+	float PlayerExp;
 	
-	//UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Player Stat")
-	//float MaxExp;
+	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Player Stat")
+	float PlayerMaxExp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "PlayerStat")
+	int32 PlayerLevel;
 
 	int ComboAttack_num;
 
@@ -93,6 +115,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
 	float Damage;
+
+
 
 
 protected:
@@ -120,6 +144,10 @@ public:
 
 	void Die();
 
+	void PlayerExpBar();
+
+	void PlayerLevelText(int32 Level);
+
 	FORCEINLINE void SetMovementStatus(EMovementStatus Status) { MovementStatus = Status; }
 
 	virtual float TakeDamage(float DamageAmount,struct FDamageEvent const & DamageEvent,class AController * EventInstigator,AActor * DamageCauser) override;
@@ -128,6 +156,11 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Enums")
 	EMovementStatus MovementStatus;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Enums")
+	EStaminaStatus StaminaStatus;
+
+	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "Combat")
 	FVector CombatTargetLocation;
@@ -166,20 +199,28 @@ public:
 	void LMBup() { bLMBDown = false; }
 	bool bLMBDown;
 
-	// °ø°İ ¸ØÃã ½ºÀ§Ä¡ 
+	// ê³µê²© ë©ˆì¶¤ ìŠ¤ìœ„ì¹˜ 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Anims")
 	bool isDuringAttack;
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
 	bool bHasCombatTarget;
 
-	// ¹«±â »ı¼º true/false
+	// ë¬´ê¸° ìƒì„± true/false
 	bool CanSetWeapon();
 
-	// Àû¿¡°Ô º¸°£ (°ø°İÇÒ¶§ ÀûÀÇ ¹æÇâÀ» º½) 
+	// ì ì—ê²Œ ë³´ê°„ (ê³µê²©í• ë•Œ ì ì˜ ë°©í–¥ì„ ë´„) 
 	float InterpSpeed;
 
+	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "movement")
+	float StaminaDrainRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "movement")
+	float MinSprintStamina;
+
 	bool bInterpToEnemy;
+
+	bool bShiftKeyDown;
 
 	void SetInterpToEnemy(bool Interp);
 
@@ -187,24 +228,24 @@ public:
 
 	//void SetWeapon(class AWeaponKatana* NewWeapon);
 
-	//¹«±â »ı¼º(?)
+	//ë¬´ê¸° ìƒì„±(?)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = items)
 	class AWeaponKatana* Equippedweapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = items)
 	class Aitem* ActiveOverlappingItem;
 
-	//ÀåÂøÇÒ ¹«±â ¼³Á¤
+	//ì¥ì°©í•  ë¬´ê¸° ì„¤ì •
 	void SetEquippedWeapon(AWeaponKatana* WeaponToSet);
 	FORCEINLINE AWeaponKatana* GetEquippedWeapon() { return Equippedweapon; }
 
-	//¹«±â ±³Ã¼ ¼³Á¤
+	//ë¬´ê¸° êµì²´ ì„¤ì •
 	FORCEINLINE void SetActiveOverlapping(Aitem* item) { ActiveOverlappingItem = item; }
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera ; }
 
-	// Àû ¿¡°Ô º¸°£ 
+	// ì  ì—ê²Œ ë³´ê°„ 
 	FORCEINLINE void SetCombatTarget(AEnemy* Target) { CombatTarget = Target; }
 
 	UFUNCTION()
