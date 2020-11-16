@@ -37,36 +37,36 @@ AMainCharacter::AMainCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// ÏôºÏÜê
+	// øﬁº’
 	LeftHandCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftHandCombatCollision"));
 	LeftHandCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("LeftHandSocket"));
 
-	// Ïò§Î•∏ÏÜê
+	// ø¿∏•º’
 	RightHandCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("RightHandCombatCollision"));
 	RightHandCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("RightHandSocket"));
 
-	//ÏôºÎ∞ú
+	//øﬁπﬂ
 	LeftTobaseCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftTobaseCombatCollision"));
 	LeftTobaseCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("LeftToeBaseSocket"));
 
-	//Ïò§Î•∏Î∞ú
+	//ø¿∏•πﬂ
 	RightTobaseCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("RightTobaseCombatCollision"));
 	RightTobaseCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("RightToeBaseSocket"));
 
-	// ÌöåÏ†ÑÏÜçÎèÑ 
+	// »∏¿¸º”µµ 
 	BaseTurnRate = 65.f;
 	BaseLookupRate = 65.f;
 
-	// ÌöåÏ†ÑÏãúÏóê ÌöåÏ†ÑÏùÑ ÌïòÏßÄÎ™ªÌïòÎèÑÎ°ùÎßâÏùå (Ïπ¥Î©îÎùº ÏóêÎßå Ìï¥Îãπ) 
+	// »∏¿¸Ω√ø° »∏¿¸¿ª «œ¡ˆ∏¯«œµµ∑œ∏∑¿Ω (ƒ´∏ﬁ∂Û ø°∏∏ «ÿ¥Á) 
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 
-	// Ï∫êÎ¶≠ÌÑ∞ ÏõÄÏßÅÏûÑ ÏûÖÎ†• 
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Ï∫êÎ¶≠ÌÑ∞Í∞Ä ÏûÖÎ†•Î∞õÎäî Î∞©Ìñ•ÏúºÎ°ú ÏõÄÏßÅÏûÑ
+	// ƒ≥∏Ø≈Õ øÚ¡˜¿” ¿‘∑¬ 
+	GetCharacterMovement()->bOrientRotationToMovement = true; // ƒ≥∏Ø≈Õ∞° ¿‘∑¬πﬁ¥¬ πÊ«‚¿∏∑Œ øÚ¡˜¿”
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.f, 0.0f);
 	
-	// Ï†êÌîÑ 
+	// ¡°«¡ 
 	GetCharacterMovement()->JumpZVelocity = 150.f;
 	GetCharacterMovement()->AirControl = 0.2;
 
@@ -289,7 +289,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMainCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpAtRate);
 
-	// Î¨¥Í∏∞ ÍµêÏ≤¥ Î≤ÑÌäº 
+	// π´±‚ ±≥√º πˆ∆∞ 
 	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMainCharacter::LMBDown);
 	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMainCharacter::LMBup);
 
@@ -338,7 +338,7 @@ void AMainCharacter::LMBDown()
 
 	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
-	// Î¨¥Í∏∞ ÍµêÏ≤¥ 
+	// π´±‚ ±≥√º 
 	if (ActiveOverlappingItem)
 	{
 		AWeaponKatana* katana = Cast<AWeaponKatana>(ActiveOverlappingItem);
@@ -353,7 +353,7 @@ void AMainCharacter::LMBDown()
 		AttackMelee();
 	}
 }
-// ÏÉàÎ°úÏö¥ Î¨¥Í∏∞ Ïû•Ï∞©Ïãú ÌååÍ¥¥ 
+// ªı∑ŒøÓ π´±‚ ¿Â¬¯Ω√ ∆ƒ±´ 
 void AMainCharacter::SetEquippedWeapon(AWeaponKatana* WeaponToSet)
 {
 	if (Equippedweapon)
@@ -492,7 +492,7 @@ void AMainCharacter::PlayerCombatOnOverlapEnd(UPrimitiveComponent* OverlappedCom
 
 		if (Enemy)
 		{
-			// ÌîåÎ†àÏù¥Ïñ¥ Í≤ΩÌóòÏπò ÌöçÎìù
+			// «√∑π¿ÃæÓ ∞Ê«Ëƒ° »πµÊ
 			if (Enemy->Health == 0)
 			{
 				PlayerExp += Enemy->Exp;
@@ -637,3 +637,19 @@ void AMainCharacter::PlayerLevelText(int32 Level)
 
 	
 	
+
+
+
+/*
+// ªÛ¿⁄ø°º≠ ≥™ø¬π´±‚ ¿Â¬¯ 
+void AMainCharacter::SetWeapon(class AWeaponKatana* NewWeapon)
+{
+	FName WeaponSocket(TEXT("RightHandSocket"));
+	if (nullptr != NewWeapon)
+	{
+		NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponSocket);
+		NewWeapon->SetOwner(this);
+		Equippedweapon = NewWeapon;
+	}
+}
+*/

@@ -56,16 +56,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
 	class UBoxComponent* RightTobaseCombatCollision;
 
-	// í”Œë ˆì´ì–´ê°€ í”¼ê²©ì„ ë‹¹í–ˆì„ë•Œ ë‚˜ì˜¨ëŠ” ì´í™íŠ¸ 
+	// ÇÃ·¹ÀÌ¾î°¡ ÇÇ°İÀ» ´çÇßÀ»¶§ ³ª¿Â´Â ÀÌÆåÆ® 
 	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Combat")
 	class UParticleSystem* PlayerHitParticles;
 
-	// ëª¬ìŠ¤í„°ê°€ í”Œë ˆì´ì–´ ë–„ë¦´ë•Œ ì‚¬ìš´ë“œ 
+	// ¸ó½ºÅÍ°¡ ÇÃ·¹ÀÌ¾î ‹š¸±¶§ »ç¿îµå 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	class USoundCue* EnemyHitSound;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly,Category ="Combat")
 	class AEnemy* CombatTarget;
+
+	// º¸½º ¸ó½ºÅÍ·Î Å¸°ÙÆÃ
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	class ABossEnemy* BossEnemyCombatTarget;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseTurnRate;
@@ -199,17 +203,17 @@ public:
 	void LMBup() { bLMBDown = false; }
 	bool bLMBDown;
 
-	// ê³µê²© ë©ˆì¶¤ ìŠ¤ìœ„ì¹˜ 
+	// °ø°İ ¸ØÃã ½ºÀ§Ä¡ 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = "Anims")
 	bool isDuringAttack;
 
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
 	bool bHasCombatTarget;
 
-	// ë¬´ê¸° ìƒì„± true/false
+	// ¹«±â »ı¼º true/false
 	bool CanSetWeapon();
 
-	// ì ì—ê²Œ ë³´ê°„ (ê³µê²©í• ë•Œ ì ì˜ ë°©í–¥ì„ ë´„) 
+	// Àû¿¡°Ô º¸°£ (°ø°İÇÒ¶§ ÀûÀÇ ¹æÇâÀ» º½) 
 	float InterpSpeed;
 
 	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "movement")
@@ -228,25 +232,26 @@ public:
 
 	//void SetWeapon(class AWeaponKatana* NewWeapon);
 
-	//ë¬´ê¸° ìƒì„±(?)
+	//¹«±â »ı¼º(?)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = items)
 	class AWeaponKatana* Equippedweapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = items)
 	class Aitem* ActiveOverlappingItem;
 
-	//ì¥ì°©í•  ë¬´ê¸° ì„¤ì •
+	//ÀåÂøÇÒ ¹«±â ¼³Á¤
 	void SetEquippedWeapon(AWeaponKatana* WeaponToSet);
 	FORCEINLINE AWeaponKatana* GetEquippedWeapon() { return Equippedweapon; }
 
-	//ë¬´ê¸° êµì²´ ì„¤ì •
+	//¹«±â ±³Ã¼ ¼³Á¤
 	FORCEINLINE void SetActiveOverlapping(Aitem* item) { ActiveOverlappingItem = item; }
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera ; }
 
-	// ì  ì—ê²Œ ë³´ê°„ 
+	// Àû ¿¡°Ô º¸°£ 
 	FORCEINLINE void SetCombatTarget(AEnemy* Target) { CombatTarget = Target; }
+	//FORCEINLINE void SetBossCombatTarget(ABossEnemy* BossTarget) { BossEnemyCombatTarget = BossTarget; }
 
 	UFUNCTION()
 	virtual void PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
