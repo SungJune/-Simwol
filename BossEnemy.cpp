@@ -163,12 +163,12 @@ void ABossEnemy::BossAgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedCompo
 		if (Character)
 		{
 			bHasValidTarget = false;
-			/*
-			if (Character->CombatTarget == this)
+			
+			if (Character->BossEnemyCombatTarget == this)
 			{
-
+				//Character->SetBossCombatTarget(nullptr);
 			}
-			*/
+			
 			if (BossAIController)
 			{
 				BossAIController->StopMovement();
