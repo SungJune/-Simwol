@@ -1,97 +1,204 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Enemy.h"
-#include "Components/SphereComponent.h"
+#include "BossEnemy.h"
 #include "AIController.h"
-#include "MainCharacter.h"
-#include "Kismet/KismetSystemLibrary.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Animation/AnimInstance.h"
+#include "TimerManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "Components/BoxComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "MainCharacter.h"
-#include "Kismet/GameplayStatics.h"
-#include "Engine/SkeletalMeshSocket.h"
-#include "Sound/SoundCue.h"
-#include "Animation/AnimInstance.h"
-#include "TimerManager.h"
-#include "Components/CapsuleComponent.h"
-#include "MainPlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
+
 
 // Sets default values
-AEnemy::AEnemy()
+ABossEnemy::ABossEnemy()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
-	AgroSphere->SetupAttachment(GetRootComponent());
-	AgroSphere->InitSphereRadius(600.f);
+	BossAgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("BossAgroSphere"));
+	BossAgroSphere->SetupAttachment(GetRootComponent());
+	BossAgroSphere->InitSphereRadius(600.f);
 
-	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
-	CombatSphere->SetupAttachment(GetRootComponent());
-	CombatSphere->InitSphereRadius(75.f);
+	BossCombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("BossCombatSphere"));
+	BossCombatSphere->SetupAttachment(GetRootComponent());
+	BossCombatSphere->InitSphereRadius(100.f);
 
-	CombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("CombatCollision"));
-	CombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("EnemySocket"));
+	RightCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("RightCombatCollision"));
+	RightCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("GRIFFON_RightSocket"));
 
-	bOverlappingCombatSphere = false;
+	LeftCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftCombatCollision"));
+	LeftCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("GRIFFON_LeftSocket"));
 
-	Health = 75.f;
-	MaxHealth = 100.f;
-	Damage = 10.f;
-	Exp = 30.f;
-	//PlayerLevel = 1;
+	MouseCombatCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("MouseCombatCollision"));
+	MouseCombatCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("GRIFFON_MouseSocket"));
 
-	AttackMinTime = 0.5f;
-	AttackMaxTime = 5.5f;
 
-	EnemyMovementStatus = EEnemyMovementStatus::EMS_Idle;
+	BossHealth = 100.f;
+	BossMaxHealth = 300.f;
+
+	BossDamage = 50.f;
 
 	DeathDlay = 3.f;
 
+	bOverlappingCombatSphere = false;
 	bHasValidTarget = false;
+
+	AttackMinTime = 1.f;
+	AttackMaxTime = 7.f;
+
+	
 }
 
 // Called when the game starts or when spawned
-void AEnemy::BeginPlay()
+void ABossEnemy::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AIController = Cast<AAIController>(GetController());
+	BossAIController = Cast<AAIController>(GetController());//11Ïõî 13Ïùº
 
-	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapBegin);
-	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOnOverlapEnd);
+	BossAgroSphere->OnComponentBeginOverlap.AddDynamic(this, &ABossEnemy::BossAgroSphereOnOverlapBegin);
+	BossAgroSphere->OnComponentEndOverlap.AddDynamic(this, &ABossEnemy::BossAgroSphereOnOverlapEnd);
 
-	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOnOverlapBegin);
-	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOnOverlapEnd);
+	BossCombatSphere->OnComponentBeginOverlap.AddDynamic(this, &ABossEnemy::BossCombatSphereOnOverlapBegin);
+	BossCombatSphere->OnComponentEndOverlap.AddDynamic(this, &ABossEnemy::BossCombatSphereOnOverlapEnd);
 
-	CombatCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapBegin);
-	CombatCollision->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatOnOverlapEnd);
+	RightCombatCollision->OnComponentBeginOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapBegin);
+	RightCombatCollision->OnComponentEndOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapEnd);
 
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	LeftCombatCollision->OnComponentBeginOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapBegin);
+	LeftCombatCollision->OnComponentEndOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapEnd);
 
+	MouseCombatCollision->OnComponentBeginOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapBegin);
+	MouseCombatCollision->OnComponentEndOverlap.AddDynamic(this, &ABossEnemy::BossCombatOnOverlapEnd);
+
+
+	// Ïò§Î•∏Î∞ú Í≥µÍ≤© ÏΩúÎ¶¨Ï†Ñ
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightCombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	RightCombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	RightCombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+
+	// Ïôº Î∞ú Í≥µÍ≤© ÏΩúÎ¶¨Ï†Ñ
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftCombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	LeftCombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	LeftCombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+
+	//Î∂ÄÎ¶¨ Í≥µÍ≤© ÏΩúÎ¶¨Ï†Ñ
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MouseCombatCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	MouseCombatCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	MouseCombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	
 }
 
 // Called every frame
-void AEnemy::Tick(float DeltaTime)
+void ABossEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 }
 
 // Called to bind functionality to input
-void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ABossEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
 
-void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void ABossEnemy::BossAttack()
 {
-	if (OtherActor && Alive())
+	if (Alive() && bHasValidTarget)
+	{
+		if (BossAIController)
+		{
+			BossAIController->StopMovement();
+			SetBossEnemyMovementStatus(EBossEnemyMovementStatus::EMS_Attacking);
+		}
+		if (!bAttacking)
+		{
+			bAttacking = true;
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (AnimInstance)
+			{
+				int32 Section = FMath::RandRange(0, 1);
+				switch (Section)
+				{
+				case 0:
+					AnimInstance->Montage_Play(BossCombatMontage, 1.5f);
+					AnimInstance->Montage_JumpToSection(FName("Attack"), BossCombatMontage);
+					break;
+
+				case 1:
+					AnimInstance->Montage_Play(BossCombatMontage, 1.5f);
+					AnimInstance->Montage_JumpToSection(FName("Attack_2"), BossCombatMontage);
+					break;
+
+				default:
+					;
+				}
+			}
+		}
+		if (BossHealth <= 60.f && !bAttacking)
+		{
+			bAttacking = true;
+			UAnimInstance* AnimInstances = GetMesh()->GetAnimInstance();
+			if (AnimInstances)
+			{
+				int32 PatonSection = FMath::RandRange(0, 3);
+				switch (PatonSection)
+				{
+				case 0:
+					AnimInstances->Montage_Play(BossPatonCombatMontage, 1.7f);
+					AnimInstances->Montage_JumpToSection(FName("PatonAttack"), BossPatonCombatMontage);
+					break;
+
+				case 1:
+					AnimInstances->Montage_Play(BossPatonCombatMontage, 1.7f);
+					AnimInstances->Montage_JumpToSection(FName("PatonAttack_1"), BossPatonCombatMontage);
+					break;
+
+				case 2:
+					AnimInstances->Montage_Play(BossCombatMontage, 1.7f);
+					AnimInstances->Montage_JumpToSection(FName("Attack"), BossCombatMontage);
+					break;
+				case 3:
+					AnimInstances->Montage_Play(BossCombatMontage, 1.7f);
+					AnimInstances->Montage_JumpToSection(FName("Attack_2"), BossCombatMontage);
+					break;
+
+				default:
+					;
+				}
+			}
+		}
+	}
+
+	
+}
+
+void ABossEnemy::BossAttackEnd()
+{
+	bAttacking = false;
+	if (bOverlappingCombatSphere)
+	{
+		// Í≥µÍ≤©ÏÜçÎèÑÎ•º ÏãúÍ∞ÑÏ∞®Î°ú Ï°∞Ï†à
+		float AttackTime = FMath::FRandRange(AttackMinTime, AttackMaxTime);
+		GetWorldTimerManager().SetTimer(AttackTimer, this, &ABossEnemy::BossAttack, AttackTime);
+		BossAttack();
+	}
+}
+
+void ABossEnemy::BossAgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	//11Ïõî 13Ïùº
+	if (OtherActor)
 	{
 		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
 		if (Character)
@@ -100,248 +207,260 @@ void AEnemy::AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		}
 	}
 }
-void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+
+void ABossEnemy::BossAgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	//11Ïõî 13Ïùº
 	if (OtherActor)
 	{
 		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
+		if (Character)
 		{
-			if (Character)
+			bHasValidTarget = false;
+			
+			if (Character->BossEnemyCombatTarget == this)
 			{
-				bHasValidTarget = false;
-				if (Character->CombatTarget == this)
-				{
-					//Character->SetHasCombatTarget(false);
-					Character->SetCombatTarget(nullptr);
-				}
-				Character->SetHasCombatTarget(false);
-				if (Character->MainPlayerController)
-				{
-					Character->MainPlayerController->RemoveEnemyHealthBar();
-				}
-				SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
-				if (AIController)
-				{
-					AIController->StopMovement();
-				}
-				
+				// 11/17Ïùº 
+				Character->SetBossCombatTarget(nullptr);
 			}
-		}
-	}
-}
-void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
-{
-	if (OtherActor && Alive())
-	{
-		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
-		{
-			if (Character)
+
+			Character->SetHasBossCombatTarget(false);
+
+			//12Ïõî 06Ïùº
+			if (Character->BossPlayerController)
 			{
-				bHasValidTarget = true;
-				Character->SetCombatTarget(this);
-				Character->SetHasCombatTarget(true);
-				if (Character->MainPlayerController)
-				{
-					Character->MainPlayerController->DisplayEnemyHealthBar();
-				}
-				CombatTarget = Character;
-				bOverlappingCombatSphere = true;
-				Attack();
+				//Character->BossPlayerController->RemoveEnemyHealthBar();
 			}
-		}
-	}
-}
-void AEnemy::CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor)
-	{
-		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
-		{
-			if (Character)
+
+			SetBossEnemyMovementStatus(EBossEnemyMovementStatus::EMS_Idle); //11Ïõî 29Ïùº
+			if (BossAIController)
 			{
-				Character->PlayerLevelText(Character->PlayerLevel);
-				/*
-				if (Character->CombatTarget==this)
-				{
-					//Character->SetHasCombatTarget(false);
-					Character->SetCombatTarget(nullptr);
-				}
-				*/
-				bOverlappingCombatSphere = false;
-				if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Attacking)
-				{
-					MoveToTarget(Character);
-					CombatTarget = nullptr;
-				}
-				
-				GetWorldTimerManager().ClearTimer(AttackTimer);
+				BossAIController->StopMovement();
 			}
 		}
 	}
 }
 
-void AEnemy::CombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void ABossEnemy::BossCombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	if (OtherActor)
+	{
+		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
+		if(Character)
+		{
+			bHasValidTarget = true;
+			Character->SetBossCombatTarget(this);
+			Character->SetHasBossCombatTarget(true);
+
+
+			BossCombatTarget = Character;
+			bOverlappingCombatSphere = true;
+			BossAttack();
+		}
+		
+	}
+}
+
+void ABossEnemy::BossCombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	// 11Ïõî 29Ïùº 
+	if (OtherActor)
+	{
+		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
+		if (Character)
+		{
+			bOverlappingCombatSphere = false;
+			if (BossEnemyMovementStatus != EBossEnemyMovementStatus::EMS_Attacking)
+			{
+				MoveToTarget(Character);
+				BossCombatTarget = nullptr;
+			}
+			GetWorldTimerManager().ClearTimer(AttackTimer);
+		}
+	}
+}
+
+
+void ABossEnemy::BossCombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
 	if (OtherActor)
 	{
 		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
 		if (Character)
 		{
-			if (Character->PlayerHitParticles)
+			if (Character->BossPlayerHitParticles)
 			{
-				const USkeletalMeshSocket* TipSocket = GetMesh()->GetSocketByName("TipSocket");
-				if (TipSocket)
+				const USkeletalMeshSocket* BossTipSocket = GetMesh()->GetSocketByName("GRIFFON_MouseTipSocket");
+				const USkeletalMeshSocket* BossTipSocket_L = GetMesh()->GetSocketByName("GRIFFON_-LHandTipSocket");
+				const USkeletalMeshSocket* BossTipSocket_R = GetMesh()->GetSocketByName("GRIFFON_-RHandTipSocket");
+				if (BossTipSocket)
 				{
-					FVector SocketLocation = TipSocket->GetSocketLocation(GetMesh());
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Character->PlayerHitParticles, SocketLocation, FRotator(0.f), false);
+					FVector BossSocketLocation = BossTipSocket->GetSocketLocation(GetMesh());
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Character->PlayerHitParticles, BossSocketLocation, FRotator(0.f), false);
 				}
-			}
-			if (Character->EnemyHitSound)
-			{
-				UGameplayStatics::PlaySound2D(this, Character->EnemyHitSound);
+				if (BossTipSocket_L)
+				{
+					FVector BossSocketLocation_L = BossTipSocket->GetSocketLocation(GetMesh());
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Character->PlayerHitParticles, BossSocketLocation_L, FRotator(0.f), false);
+				}
+				if (BossTipSocket_R)
+				{
+					FVector BossSocketLocation_R = BossTipSocket->GetSocketLocation(GetMesh());
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Character->PlayerHitParticles, BossSocketLocation_R, FRotator(0.f), false);
+				}
 			}
 			if (DamageTypeclass)
 			{
-				UGameplayStatics::ApplyDamage(Character, Damage, AIController, this, DamageTypeclass);
+				UGameplayStatics::ApplyDamage(Character, BossDamage, BossAIController, this, DamageTypeclass);
 			}
-			
 		}
 	}
 }
 
-void AEnemy::CombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+ void ABossEnemy::BossCombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	/*
-	if (OtherActor)
-	{
-		AMainCharacter* Character = Cast<AMainCharacter>(OtherActor);
-		
-		if (Character)
-		{
-			Character->PlayerLevelText(Character->PlayerLevel);
-		}
-		
-	}*/
+
 }
 
 
-void AEnemy::MoveToTarget(AMainCharacter* Target)
-{
-	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_MoveToTarget);
 
-	if (AIController)
+//11Ïõî 13Ïùº
+void ABossEnemy::MoveToTarget(class AMainCharacter* Target)
+{
+	SetBossEnemyMovementStatus(EBossEnemyMovementStatus::EMS_MoveToTarget);
+	if (BossAIController)
 	{
 		FAIMoveRequest MoveRequest;
 		MoveRequest.SetGoalActor(Target);
 		MoveRequest.SetAcceptanceRadius(10.0f);
 
 		FNavPathSharedPtr NavPath;
-		AIController->MoveTo(MoveRequest, &NavPath);
-
-
-
-		/*
-		// ∏ÛΩ∫≈Õ¿« øÚ¡˜¿” ∞Ê∑Œ∏¶ ∫∏ø©¡‹
-		auto PathPoints = NavPath->GetPathPoints();
-
-		for (auto Points : PathPoints)
-		{
-			FVector Location = Points.Location;
-			UKismetSystemLibrary::DrawDebugSphere(this, Location, 25.f, 8, FLinearColor::Red, 10.f, 1.5f);
-		}
-		*/
+		BossAIController->MoveTo(MoveRequest, &NavPath);
 	}
 }
 
-void AEnemy::ActivateCollision()
+
+void ABossEnemy::ActivateCollision()
 {
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
-void AEnemy::DeactivateCollision()
+void ABossEnemy::DeactivateCollision()
 {
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-void AEnemy::Attack()
-{
 
-	if (Alive() && bHasValidTarget)
-	{
-		if (AIController)
-		{
-			AIController->StopMovement();
-			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attacking);
-		}
-		if (!bAttacking)
-		{
-			bAttacking = true;
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (AnimInstance)
-			{
-				AnimInstance->Montage_Play(CombatMontage, 1.35f);
-				AnimInstance->Montage_JumpToSection(FName("Attack"), CombatMontage);
-			}
-		}
-	}
-	
+void ABossEnemy::ActivateCollision_a()
+{
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
-void AEnemy::AttackEnd()
+void ABossEnemy::DeactivateCollision_a()
 {
-	bAttacking = false;
-	if (bOverlappingCombatSphere)
-	{
-		// ∞¯∞›º”µµ∏¶ Ω√∞£¬˜∑Œ ¡∂¿˝
-		float AttackTime = FMath::FRandRange(AttackMinTime, AttackMaxTime);
-		GetWorldTimerManager().SetTimer(AttackTimer, this, &AEnemy::Attack, AttackTime);
-		Attack();
-	}
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
-float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser)
+
+void ABossEnemy::ActivateCollision_b()
 {
-	if (Health - DamageAmount <= 0.f)
-	{
-		Health -= DamageAmount;
-		Die();
-	}
-	else
-	{
-		Health -= DamageAmount;
-	}
-	
-	return DamageAmount;
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
-void AEnemy::Die()
+
+void ABossEnemy::DeactivateCollision_b()
+{
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABossEnemy::ActivateCollision_c()
+{
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void ABossEnemy::DeactivateCollision_c()
+{
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABossEnemy::ActivateCollision_m()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void ABossEnemy::DeactivateCollision_m()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABossEnemy::ActivateCollision_Paton()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+void ABossEnemy::DeactivateCollision_Paton()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ABossEnemy::ActivateCollision_Paton_a()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+void ABossEnemy::DeactivateCollision_Paton_a()
+{
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+// 11/ 29
+bool ABossEnemy::Alive()
+{
+	return GetBossEnemyMovementStatus() != EBossEnemyMovementStatus::EMS_Dead;
+}
+
+// 12/5Ïùº
+void ABossEnemy::Die()
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
-		AnimInstance->Montage_Play(CombatMontage, 1.0f);
-		AnimInstance->Montage_JumpToSection(FName("Death"), CombatMontage);
+		AnimInstance->Montage_Play(BossCombatMontage, 1.0f);
+		AnimInstance->Montage_JumpToSection(FName("Death"), BossCombatMontage);
 	}
-	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
+	SetBossEnemyMovementStatus(EBossEnemyMovementStatus::EMS_Dead);
 
-	CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BossAgroSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BossCombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MouseCombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
-void AEnemy::DeathEnd()
+
+// 12/5Ïùº
+void ABossEnemy::DeathEnd()
 {
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
-	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::Disappar, DeathDlay);
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &ABossEnemy::Disappear, DeathDlay);
 }
 
-bool AEnemy::Alive()
-{
-	return GetEnemyMovementStatus() != EEnemyMovementStatus::EMS_Dead;
-}
 
-void AEnemy::Disappar()
+//11Ïõî 13Ïùº
+void ABossEnemy::Disappear()
 {
 	Destroy();
+}
+
+// 12/5Ïùº
+float ABossEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser)
+{
+	if (BossHealth - DamageAmount < 0.f)
+	{
+		BossHealth -= DamageAmount;
+	}
+	else
+	{
+		BossHealth -= DamageAmount;
+	}
+	return DamageAmount;
 }
