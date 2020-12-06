@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Enemy.generated.h"
+#include "BossEnemy.generated.h"
+
 
 UENUM(BlueprintType)
-enum class EEnemyMovementStatus : uint8
+enum class EBossEnemyMovementStatus : uint8
 {
 	EMS_Idle				UMETA(DeplayName = "Idle"),
 	EMS_MoveToTarget		UMETA(DeplayName = "MoveToTarget"),
@@ -17,64 +18,78 @@ enum class EEnemyMovementStatus : uint8
 	EMS_MAX					UMETA(DeplayNmae = "DefaultMAX")
 };
 
+
 UCLASS()
-class OPENRPG_API AEnemy : public ACharacter
+class OPENRPG_API ABossEnemy : public ACharacter
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
-	AEnemy();
+	ABossEnemy();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
-	EEnemyMovementStatus EnemyMovementStatus;
-
-	UPROPERTY(VIsibleAnywhere, BlueprintReadOnly, Category ="AI")
-	class USphereComponent* AgroSphere;
+	EBossEnemyMovementStatus BossEnemyMovementStatus;
 
 	UPROPERTY(VIsibleAnywhere, BlueprintReadOnly, Category = "AI")
-	USphereComponent* CombatSphere;
+	class USphereComponent* BossAgroSphere;
 
 	UPROPERTY(VIsibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class AAIController* AIController;
+	USphereComponent* BossCombatSphere;
 
-	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "Combat")
-	class UBoxComponent* CombatCollision;
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UAnimMontage* BossCombatMontage;
 
-	// 몬스터가 피격을 당했을때 나온는 이펙트 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
-	class UParticleSystem* EnemyHitParticle;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
-	class UParticleSystem* EnemyLastHitParticle;
-
-	// 플레이어가 몬스터 공격할때 사운드 
-	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category = "Combat")
-	class USoundCue* PlayerHitSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category ="Combat")
-	class UAnimMontage* CombatMontage;
-
-	UPROPERTY(EditAnywhere,BlueprintReadwrite, Category = "AI")
-	float Health;
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UAnimMontage* BossPatonCombatMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
-	float MaxHealth;
+	float BossHealth;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
-	float Damage;
+	float BossMaxHealth;
+
+	
+	UPROPERTY(VIsibleAnywhere, BlueprintReadOnly, Category = "AI")
+	class AAIController* BossAIController;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
-	float Exp;
+	float BossDamage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "AI")
+	float BossExp;
 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "PlayerStat")
-	int32 PlayerLevel;
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "AI")
+	AMainCharacter* BossCombatTarget;
+
+	UFUNCTION(BlueprintCallable)
+	void MoveToTarget(class AMainCharacter* Target);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bAttacking;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "AI")
+	bool bOverlappingCombatSphere;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	float AttackMinTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
+	float AttackMaxTime;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* RightCombatCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* LeftCombatCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "Combat")
+	class UBoxComponent* MouseCombatCollision;
 
 
-
-	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus Status) { EnemyMovementStatus = Status; }
-	FORCEINLINE EEnemyMovementStatus GetEnemyMovementStatus() { return EnemyMovementStatus; }
-
+	FORCEINLINE void SetBossEnemyMovementStatus(EBossEnemyMovementStatus Status) { BossEnemyMovementStatus = Status; }
+	FORCEINLINE EBossEnemyMovementStatus GetBossEnemyMovementStatus() { return BossEnemyMovementStatus; }
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -88,33 +103,19 @@ public:
 
 
 	UFUNCTION()
-	virtual void AgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+		virtual void BossAgroSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 	UFUNCTION()
-	virtual void AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
-	UFUNCTION()
-	virtual void CombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	
+		virtual void BossAgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION()
-	virtual void CombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+		virtual void BossCombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	UFUNCTION()
+		virtual void BossCombatSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION()
-	virtual void CombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	
-	UFUNCTION(BlueprintCallable)
-	void MoveToTarget(class AMainCharacter* Target);
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadwrite,Category = "AI")
-	bool bOverlappingCombatSphere;
-
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category ="Combat")
-	bool bAttacking;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadwrite, Category = "AI")
-	AMainCharacter* CombatTarget;
+		virtual void BossCombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	UFUNCTION()
+		virtual void BossCombatOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION(BlueprintCallable)
 	void ActivateCollision();
@@ -122,38 +123,70 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void DeactivateCollision();
 
-	void Attack();
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_a();
 
-	void Die();
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_a();
 
-	void Disappar();
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_b();
 
-	bool Alive();
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_b();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_c();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_c();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_m();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_m();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_Paton();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_Paton();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision_Paton_a();
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision_Paton_a();
 
 	bool bHasValidTarget;
 
-	UFUNCTION(BlueprintCallable)
-	void DeathEnd();
+	void BossAttack();
 
 	UFUNCTION(BlueprintCallable)
-	void AttackEnd();
+	void BossAttackEnd();
+
+	void Disappear();
+
+	bool Alive();
 
 	FTimerHandle AttackTimer;
 
 	FTimerHandle DeathTimer;
 
-	UPROPERTY(EditAnywhere,BlueprintReadwrite,Category ="Combat")
-	float DeathDlay;
+	void Die();
 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category ="Combat")
-	float AttackMinTime;
+	UFUNCTION(BlueprintCallable)
+	void DeathEnd();
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
-	float AttackMaxTime;
+	float DeathDlay;
 
-	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category ="Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	TSubclassOf<UDamageType> DamageTypeclass;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const & DamageEvent, class AController * EventInstigator, AActor * DamageCauser) override;
-};
 
+
+
+};
