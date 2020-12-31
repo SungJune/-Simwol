@@ -504,16 +504,7 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->EnemyHitParticle, SocketLocationd, FRotator(0.f), false);
 				
 				}
-				else if (LeftToeBaseSocket)
-				{
-					FVector SkillSocketLocation_L = LeftToeBaseSocket->GetSocketLocation(GetMesh());
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->EnemyHitParticle, SkillSocketLocation_L, FRotator(0.f), false);
-				}
-				else if (RightToeBaseSocket)
-				{
-					FVector SkillSocketLocation_R = RightToeBaseSocket->GetSocketLocation(GetMesh());
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->EnemyHitParticle, SkillSocketLocation_R, FRotator(0.f), false);
-				}
+				
 				if (bHaseSkillHit)
 				{
 					if (LeftToeBaseSocket)
@@ -579,17 +570,7 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Boss->BossHitParticle, SocketLocationd, FRotator(0.f), false);
 
 				}
-				// 스킬 소켓 
-				else if (LeftToeBaseSocket)
-				{
-					FVector SkillSocketLocation_L = LeftToeBaseSocket->GetSocketLocation(GetMesh());
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Boss->BossHitParticle, SkillSocketLocation_L, FRotator(0.f), false);
-				}
-				else if (RightToeBaseSocket)
-				{
-					FVector SkillSocketLocation_R = RightToeBaseSocket->GetSocketLocation(GetMesh());
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Boss->BossHitParticle, SkillSocketLocation_R, FRotator(0.f), false);
-				}
+				
 				if (bHaseSkillHit)
 				{
 					if (LeftToeBaseSocket)
