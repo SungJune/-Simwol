@@ -103,6 +103,8 @@ public:
 	UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category = "Player Stat")
 	float PlayerMaxExp;
 
+	
+
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "PlayerStat")
 	int32 PlayerLevel;
 
@@ -138,12 +140,31 @@ public:
 	//Skill Key 눌렸을때 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
 	bool bSkillDown;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Combat")
-	//bool bSkill_Key_Down;
-
 	
+	// 캐릭터가 첫번째 기술을 사용했는지 확인 
+	UPROPERTY(EditAnywhere,BlueprintReadwrite, Category = "Abliltys")
+	bool hasUsedAblilty1;
+	
+	// 캐릭터가 두번째 기술을 사용했는지 확인 
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	bool hasUsedAblilty2;
 
+	//캐릭터가 첫번째 기술 사용 시간 
+	float ablilty1Duration;
+
+	float ablilty2Duration;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	float ablilty1ColldownTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	float ablilty2ColldownTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	FTimerHandle ablilty1TimerHandle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Abliltys")
+	FTimerHandle ablilty2TimerHandle;
 
 
 
@@ -179,6 +200,16 @@ public:
 	void SkillKeyDown();
 
 	void SkillKeyDown_two();
+
+	// 스킬 을 사용했을때 시간이 쿨 타임 사용
+	void ResetAblilty1();
+
+	void ResetAblilty2();
+
+	//스킬 쿨타임이 다되었을때 재사용 대기로 전환
+	void Ablilty1CooldownComplete();
+
+	void Ablilty2CooldownComplete();
 
 	//스킬 키 가 클릭이안되었을떄 True 를해주기떄문에 처음부터 False 로 작성
 	FORCEINLINE void SkillKeyup() { bSkillDown = false; }
@@ -328,8 +359,5 @@ public:
 	FORCEINLINE void SetHasCombatTarget(bool HasTarget) { bHasCombatTarget = HasTarget; }
 
 	FORCEINLINE void SetHasBossCombatTarget(bool BossHasTarget) { bHasCombatTarget = BossHasTarget; }
-	
-	
-
 
 };
