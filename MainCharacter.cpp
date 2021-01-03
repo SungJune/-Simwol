@@ -106,6 +106,13 @@ AMainCharacter::AMainCharacter()
 
 	StaminaDrainRate = 25.f;
 	MinSprintStamina = 50.f;
+
+	hasUsedAblilty1 = false;
+	hasUsedAblilty2 = false;
+	ablilty1Duration = 2.f;
+	ablilty2Duration = 4.f;
+	ablilty1ColldownTime = 3.f;
+	ablilty2ColldownTime = 4.f;
 }
 
 // Called when the game starts or when spawned
@@ -510,7 +517,7 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 					if (LeftToeBaseSocket)
 					{
 						FVector SkillSocketLocations = LeftToeBaseSocket->GetSocketLocation(GetMesh());
-						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->EnemyHitParticle, SkillSocketLocations, FRotator(0.f), false);
+						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->SkillEnemyHitParticle, SkillSocketLocations, FRotator(0.f), false);
 					}
 				}
 			}
@@ -532,6 +539,7 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 			if (DamageTypeClass)
 			{
 				UGameplayStatics::ApplyDamage(Enemy, Damage, PauchInstigator,this, DamageTypeClass);
+
 				if (bHaseSkillHit)
 				{
 					UGameplayStatics::ApplyDamage(Enemy, SkillDamage, PauchInstigator, this, DamageTypeClass);
@@ -576,7 +584,7 @@ void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedC
 					if (LeftToeBaseSocket)
 					{
 						FVector SkillSocketLocations_L = LeftToeBaseSocket->GetSocketLocation(GetMesh());
-						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Boss->BossHitParticle, SkillSocketLocations_L, FRotator(0.f), false);
+						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Boss->SkillBossPlayerHitParticles, SkillSocketLocations_L, FRotator(0.f), false);
 					}
 				}
 			}
@@ -794,13 +802,14 @@ void AMainCharacter::SkillKeyDown()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!bSkillDown)
 	{
+		hasUsedAblilty1 = true;
 		if (AnimInstance)
 		{
 			AnimInstance->Montage_Play(SkillAttack, 1.2f);
 			AnimInstance->Montage_JumpToSection(FName("SkillAttack"), SkillAttack);
+			
 		}
-		//if (MainPlayerController->IsInputKeyDown(EKeys::NumPadOne) && AnimInstance)
-		
+		GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::ResetAblilty1, ablilty1Duration, false);
 	}
 }
 void AMainCharacter::SkillKeyDown_two()
@@ -809,12 +818,37 @@ void AMainCharacter::SkillKeyDown_two()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (!bSkillDown)
 	{
+		hasUsedAblilty2 = true;
 		if (AnimInstance)
 		{
 			AnimInstance->Montage_Play(SkillAttack, 1.2f);
 			AnimInstance->Montage_JumpToSection(FName("SkillAttack_2"), SkillAttack);
+			
 		}
+		GetWorld()->GetTimerManager().SetTimer(ablilty2TimerHandle, this, &AMainCharacter::ResetAblilty2, ablilty2Duration, false);
 	}
+	
+}
+
+void AMainCharacter::ResetAblilty1()
+{
+	GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::Ablilty1CooldownComplete, ablilty1ColldownTime, false);
+}
+
+void AMainCharacter::ResetAblilty2()
+{
+	GetWorld()->GetTimerManager().SetTimer(ablilty2TimerHandle, this, &AMainCharacter::Ablilty2CooldownComplete, ablilty2ColldownTime, false);
+}
+
+void AMainCharacter::Ablilty1CooldownComplete()
+{
+	hasUsedAblilty1 = false;
+}
+
+void AMainCharacter::Ablilty2CooldownComplete()
+{
+	hasUsedAblilty2 = false;
+	
 }
 
 	
