@@ -24,6 +24,7 @@
 #include "MainPlayerController.h"
 #include "BossPlayerController.h"
 #include "BossEnemy.h"
+
 // Sets default values
 AMainCharacter::AMainCharacter()
 {
@@ -72,7 +73,8 @@ AMainCharacter::AMainCharacter()
 	GetCharacterMovement()->JumpZVelocity = 150.f;
 	GetCharacterMovement()->AirControl = 0.2;
 
-	bLMBDown = false;
+	//bLMBDown = false;
+	isDuringAttack = false;
 
 	InterpSpeed = 15.f;
 	bInterpToEnemy = false;	
@@ -153,7 +155,7 @@ void AMainCharacter::BeginPlay()
 	RightTobaseCombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 
 	MainPlayerController = Cast<AMainPlayerController>(GetController());
-	BossPlayerController = Cast<ABossPlayerController>(GetController());
+	//BossPlayerController = Cast<ABossPlayerController>(GetController());
 	
 	
 }
@@ -274,14 +276,14 @@ void AMainCharacter::Tick(float DeltaTime)
 			MainPlayerController->EnemyLocation = CombatTargetLocation;
 		}
 	}
-	if (BossEnemyCombatTarget)
+	if (BossEnemyCombatTarget) //BossEnemyCombatTarget
 	{
 		//12/06일 BossPlayerController
-		BossCombatTargetLocation = BossEnemyCombatTarget->GetActorLocation();
+		BossCombatTargetLocation = BossEnemyCombatTarget->GetActorLocation();//BossEnemyCombatTarget
 		
-		if (BossPlayerController)
+		if (MainPlayerController)
 		{
-			BossPlayerController->BossEnemyLocation = BossCombatTargetLocation;
+			MainPlayerController->BossEnemyLocation = BossCombatTargetLocation;
 		}
 	}
 }
@@ -333,14 +335,14 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpAtRate);
 
 	// 무기 교체 버튼 
-	PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMainCharacter::LMBDown);
-	PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMainCharacter::LMBup);
+	//PlayerInputComponent->BindAction("LMB", IE_Pressed, this, &AMainCharacter::LMBDown);
+	//PlayerInputComponent->BindAction("LMB", IE_Released, this, &AMainCharacter::LMBup);
 
 }
 
 void AMainCharacter::MoveForward(float Value)
 {
-	if ((Controller != nullptr) && (Value != 0.0f) && (isDuringAttack==false) && (MovementStatus != EMovementStatus::EMS_Dead))
+	if ((Controller != nullptr) && (Value != 0.0f) && (!isDuringAttack)  && (MovementStatus != EMovementStatus::EMS_Dead))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -354,7 +356,7 @@ void AMainCharacter::MoveForward(float Value)
 void AMainCharacter::MoveRight(float Value)
 {
 
-	if ((Controller != nullptr) && (Value != 0.0f) && (isDuringAttack==false) && (MovementStatus != EMovementStatus::EMS_Dead))
+	if ((Controller != nullptr) && (Value != 0.0f) && (!isDuringAttack) && (MovementStatus != EMovementStatus::EMS_Dead))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -375,6 +377,7 @@ void AMainCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookupRate * GetWorld()->GetDeltaSeconds());
 }
 
+/*
 void AMainCharacter::LMBDown()
 {
 	bLMBDown = true;
@@ -395,7 +398,9 @@ void AMainCharacter::LMBDown()
 	{
 		AttackMelee();
 	}
-}
+}*/
+
+/*
 // 새로운 무기 장착시 파괴 
 void AMainCharacter::SetEquippedWeapon(AWeaponKatana* WeaponToSet)
 {
@@ -405,6 +410,7 @@ void AMainCharacter::SetEquippedWeapon(AWeaponKatana* WeaponToSet)
 	}
 	Equippedweapon = WeaponToSet;
 }
+*/
 
 void AMainCharacter::AttackMelee()
 {
@@ -429,7 +435,7 @@ void AMainCharacter::AttackMelee()
 
 	}
 	FTimerHandle TH_Attack_End;
-	GetWorldTimerManager().SetTimer(TH_Attack_End, this, &AMainCharacter::AttackMeleeEnd, 1.7f, false);
+	GetWorldTimerManager().SetTimer(TH_Attack_End, this, &AMainCharacter::AttackMeleeEnd, 1.3f, false);
 
 
 	/*
@@ -463,16 +469,18 @@ void AMainCharacter::AttackMeleeEnd()
 {
 	isDuringAttack = false;
 	SetInterpToEnemy(false);
-	if (bLMBDown)
+	if (isDuringAttack)
 	{
 		AttackMelee();
 	}
 
 }
+/*
 bool AMainCharacter::CanSetWeapon()
 {
 	return (nullptr == Equippedweapon);
 }
+*/
 
 
 void AMainCharacter::PlayerCombatOnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
@@ -800,6 +808,7 @@ void AMainCharacter::SkillKeyDown()
 {
 	bHaseSkillHit = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	
 	if (!bSkillDown)
 	{
 		hasUsedAblilty1 = true;
@@ -809,8 +818,24 @@ void AMainCharacter::SkillKeyDown()
 			AnimInstance->Montage_JumpToSection(FName("SkillAttack"), SkillAttack);
 			
 		}
-		GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::ResetAblilty1, ablilty1Duration, false);
+		GetWorld()->GetTimerManager().SetTimer(ablilty1TimerHandle, this, &AMainCharacter::ResetAblilty1, ablilty1Duration, false);		
+		
 	}
+	if (hasUsedAblilty1 == true)
+	{
+		
+	}
+	/*
+	if (hasUsedAblilty1)
+	{
+		//APlayerController* PlayerController = GetWorld()->GetFirstPlayerController()->IsPlayerController;
+		Cast<AMainPlayerController>(GetController())->Disable();
+	}
+	else
+	{
+		Cast<AMainPlayerController>(GetController())->Enable();
+	}
+	*/
 }
 void AMainCharacter::SkillKeyDown_two()
 {
